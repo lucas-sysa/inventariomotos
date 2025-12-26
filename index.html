@@ -6,27 +6,22 @@
 <title>Inventario VIN</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #0f172a;
-  color: #ffffff;
+  color: #fff;
   padding: 16px;
   margin: 0;
 }
 
-/* Título */
 h2 {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 16px;
-  letter-spacing: 1px;
+  margin-bottom: 14px;
 }
 
-/* Input VIN */
 #vin {
   width: 100%;
   padding: 18px;
@@ -40,37 +35,20 @@ h2 {
   color: #000;
 }
 
-/* Resultado */
 #res {
-  margin-top: 20px;
-  padding: 18px;
+  margin-top: 18px;
+  padding: 16px;
   font-size: 20px;
   text-align: center;
   border-radius: 10px;
   font-weight: bold;
 }
 
-/* Estados */
-.ok {
-  background: #16a34a;
-  color: #ffffff;
-}
+.ok   { background: #16a34a; }
+.warn { background: #f59e0b; color: #000; }
+.err  { background: #dc2626; }
 
-.warn {
-  background: #f59e0b;
-  color: #000000;
-}
-
-.err {
-  background: #dc2626;
-  color: #ffffff;
-}
-
-/* Animación breve */
-.flash {
-  animation: flash 0.15s;
-}
-
+.flash { animation: flash 0.12s; }
 @keyframes flash {
   from { transform: scale(1.05); }
   to   { transform: scale(1); }
@@ -86,6 +64,7 @@ h2 {
   id="vin"
   autofocus
   inputmode="none"
+  autocomplete="off"
   placeholder="ESCANEAR VIN"
 >
 
@@ -97,18 +76,35 @@ const URL = "https://script.google.com/macros/s/AKfycbwaEEXiNCQ9Mo-lQoZlBvJ8iK5G
 const vinInput = document.getElementById("vin");
 const res = document.getElementById("res");
 
-let enviando = false; // 🔒 evita doble piqueo
+let enviando = false;
+
+function limpiarInput() {
+  vinInput.value = "";
+  // fuerza limpieza real en handheld
+  setTimeout(() => vinInput.value = "", 0);
+}
 
 vinInput.focus();
 
-vinInput.addEventListener("keypress", e => {
-  if (e.key === "Enter" && !enviando) {
+vinInput.addEventListener("keydown", e => {
+
+  // bloquea cualquier tecla mientras envía
+  if (enviando) {
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key === "Enter") {
+    e.preventDefault();
 
     const vin = vinInput.value.trim();
     if (!vin) return;
 
-    enviando = true;          // 🔒 bloquea nuevos scans
+    enviando = true;
     vinInput.disabled = true;
+
+    // limpia INMEDIATO (antes del fetch)
+    limpiarInput();
 
     fetch(URL, {
       method: "POST",
@@ -128,20 +124,17 @@ vinInput.addEventListener("keypress", e => {
           "err flash";
       }
 
-      // 🔄 Refresh rápido y SEGURO (no pierde datos)
-      setTimeout(() => {
-        location.replace(location.href);
-      }, 250);
     })
     .catch(() => {
-      // si falla la comunicación, desbloquea
-      enviando = false;
-      vinInput.disabled = false;
-      vinInput.value = "";
-      vinInput.focus();
-
       res.textContent = "ERROR DE CONEXIÓN";
       res.className = "err";
+    })
+    .finally(() => {
+      // listo para el próximo piqueo
+      limpiarInput();
+      vinInput.disabled = false;
+      vinInput.focus();
+      enviando = false;
     });
   }
 });
