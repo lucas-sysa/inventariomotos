@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scanner Automático</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding-top: 50px; }
+        input { font-size: 30px; padding: 20px; width: 80%; border: none; border-radius: 10px; text-align: center; }
+        .loading { color: orange; display: none; margin-top: 20px; }
+        .success { color: #00ff00; font-size: 20px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h2>MODO AUTOMÁTICO</h2>
+    <p>Escanee el código VIN ahora</p>
+    
+    <input type="text" id="vinInput" autofocus placeholder="Esperando..." autocomplete="off">
+    
+    <div id="loading" class="loading">Procesando...</div>
+    <div id="status"></div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbz_A5CZiKJWstbU7kp0V4HOZFp3KHUL5gHQTDDZV6IZZGaFedxxhsJxtzWcHFw_Osak/exec';
+        const input = document.getElementById('vinInput');
+        const status = document.getElementById('status');
+        const loading = document.getElementById('loading');
+        
+        let timeout = null;
+
+        input.addEventListener('input', function() {
+            // Cada vez que entra un caracter, reiniciamos el reloj
+            clearTimeout(timeout);
+            
+            // Si pasan 500ms sin nuevos caracteres, asumimos que el escáner terminó
+            timeout = setTimeout(() => {
+                const vin = input.value.trim();
+                if (vin.length > 5) { // Evita enviar ruidos o textos muy cortos
+                    enviarAutomatico(vin);
+                }
+            }, 500); 
+        });
+
+        function enviarAutomatico(valor) {
+            loading.style.display = 'block';
+            status.innerHTML = "";
+            input.disabled = true;
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ vin: valor })
+            })
+            .then(() => {
+                loading.style.display = 'none';
+                status.innerHTML = `<div class="success">✅ REGISTRADO: ${valor}</div>`;
+                input.value = ''; // Limpiar para el siguiente
+                input.disabled = false;
+                input.focus();
+            })
+            .catch(err => {
+                console.error(err);
+                loading.style.display = 'none';
+                input.disabled = false;
+                input.focus();
+            });
+        }
+
+        // Mantener el foco si el usuario hace clic fuera
+        document.addEventListener('click', () => input.focus());
+    </script>
+</body>
+</html>
+
