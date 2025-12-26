@@ -11,7 +11,7 @@
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #0f172a;
-  color: #fff;
+  color: #ffffff;
   padding: 16px;
   margin: 0;
 }
@@ -19,9 +19,10 @@ body {
 h2 {
   text-align: center;
   font-size: 22px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
+/* Input VIN */
 #vin {
   width: 100%;
   padding: 18px;
@@ -35,20 +36,24 @@ h2 {
   color: #000;
 }
 
+/* Resultado */
 #res {
-  margin-top: 18px;
-  padding: 16px;
+  margin-top: 20px;
+  padding: 18px;
   font-size: 20px;
   text-align: center;
   border-radius: 10px;
   font-weight: bold;
 }
 
+/* Estados */
 .ok   { background: #16a34a; }
 .warn { background: #f59e0b; color: #000; }
 .err  { background: #dc2626; }
 
+/* Flash visual */
 .flash { animation: flash 0.12s; }
+
 @keyframes flash {
   from { transform: scale(1.05); }
   to   { transform: scale(1); }
@@ -64,7 +69,6 @@ h2 {
   id="vin"
   autofocus
   inputmode="none"
-  autocomplete="off"
   placeholder="ESCANEAR VIN"
 >
 
@@ -76,35 +80,21 @@ const URL = "https://script.google.com/macros/s/AKfycbwaEEXiNCQ9Mo-lQoZlBvJ8iK5G
 const vinInput = document.getElementById("vin");
 const res = document.getElementById("res");
 
-let enviando = false;
-
-function limpiarInput() {
-  vinInput.value = "";
-  // fuerza limpieza real en handheld
-  setTimeout(() => vinInput.value = "", 0);
-}
+let enviando = false; // evita doble envío
 
 vinInput.focus();
 
 vinInput.addEventListener("keydown", e => {
-
-  // bloquea cualquier tecla mientras envía
-  if (enviando) {
-    e.preventDefault();
-    return;
-  }
-
   if (e.key === "Enter") {
     e.preventDefault();
+
+    if (enviando) return;
 
     const vin = vinInput.value.trim();
     if (!vin) return;
 
     enviando = true;
     vinInput.disabled = true;
-
-    // limpia INMEDIATO (antes del fetch)
-    limpiarInput();
 
     fetch(URL, {
       method: "POST",
@@ -124,14 +114,16 @@ vinInput.addEventListener("keydown", e => {
           "err flash";
       }
 
+      // 🔓 listo para el siguiente piqueo
+      vinInput.value = "";
+      vinInput.disabled = false;
+      vinInput.focus();
+      enviando = false;
     })
     .catch(() => {
       res.textContent = "ERROR DE CONEXIÓN";
       res.className = "err";
-    })
-    .finally(() => {
-      // listo para el próximo piqueo
-      limpiarInput();
+
       vinInput.disabled = false;
       vinInput.focus();
       enviando = false;
