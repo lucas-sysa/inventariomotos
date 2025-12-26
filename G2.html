@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario VIN</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 16px;
+  margin: 0;
+}
+
+/* Título */
+h2 {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+/* Input VIN */
+#vin {
+  width: 100%;
+  padding: 18px;
+  font-size: 24px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  text-align: center;
+  font-weight: bold;
+  background: #e5e7eb;
+  color: #000;
+}
+
+/* Resultado */
+#res {
+  margin-top: 20px;
+  padding: 18px;
+  font-size: 20px;
+  text-align: center;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* Estados */
+.ok {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.warn {
+  background: #f59e0b;
+  color: #000000;
+}
+
+.err {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Feedback visual rápido */
+.flash {
+  animation: flash 0.15s;
+}
+
+@keyframes flash {
+  from { transform: scale(1.05); }
+  to   { transform: scale(1); }
+}
+</style>
+</head>
+
+<body>
+
+<h2>ESCANEAR VIN</h2>
+
+<input 
+  id="vin" 
+  autofocus 
+  inputmode="none"
+  placeholder="ESCANEAR VIN"
+>
+
+<div id="res"></div>
+
+<script>
+const URL = "https://script.google.com/macros/s/AKfycbzNsOwZW9tcYltKq-2qa1sXVkDieZfrXphooPLkM3Tn_mMZVFr3Bn3XYqsKuF-dwIc9/exec";
+const vinInput = document.getElementById("vin");
+const res = document.getElementById("res");
+
+vinInput.focus();
+
+vinInput.addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    const vin = vinInput.value.trim();
+    if (!vin) return;
+
+    fetch(URL, {
+      method: "POST",
+      body: new URLSearchParams({ vin })
+    })
+    .then(r => r.json())
+    .then(d => {
+
+      if (d.error) {
+        res.textContent = d.error;
+        res.className = "err flash";
+      } else {
+        res.textContent = d.resultado;
+        res.className =
+          d.resultado === "SAP y WMS" ? "ok flash" :
+          d.resultado.includes("SOLO") ? "warn flash" : "err flash";
+      }
+
+      vinInput.value = "";
+      vinInput.focus();
+    });
+  }
+});
+</script>
+
+</body>
+</html>
+
