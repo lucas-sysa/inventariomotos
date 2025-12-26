@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scanner VIN</title>
+    <style>
+        body { background: #f0f2f5; font-family: sans-serif; text-align: center; padding: 20px; }
+        input { font-size: 24px; padding: 15px; width: 80%; border: 2px solid #007bff; border-radius: 8px; }
+        .success { color: green; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Escanee el VIN</h2>
+    <input type="text" id="vinInput" autofocus placeholder="Esperando escaneo...">
+    <div id="status"></div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxaSQrJ-jzfK2OUzLgVgk7GkzxttcN9vOiB-xaUhzCJ0VpD4Vgd6l4efXRGOELsGUFP4w/exec';
+        const input = document.getElementById('vinInput');
+        const status = document.getElementById('status');
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const vin = input.value;
+                if(vin.trim() === "") return;
+
+                // Limpiamos inmediatamente para el siguiente escaneo
+                input.value = ''; 
+                status.innerHTML = "Enviando: " + vin + "...";
+
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Para evitar errores de seguridad del navegador
+                    body: JSON.stringify({ vin: vin })
+                })
+                .then(() => {
+                    status.innerHTML = "<div class='success'>✅ Guardado: " + vin + "</div>";
+                })
+                .catch(err => {
+                    status.innerHTML = "❌ Error de red";
+                    console.error(err);
+                });
+            }
+        });
+
+        // Mantiene el foco en el input siempre
+        document.addEventListener('click', () => input.focus());
+    </script>
+</body>
+</html>
