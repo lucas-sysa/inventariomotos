@@ -2,38 +2,113 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventario VIN</title>
+
 <style>
-body { font-family: Arial; padding: 20px; }
-input {
-  width: 100%;
-  padding: 20px;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 16px;
+  margin: 0;
+}
+
+/* Título */
+h2 {
+  text-align: center;
   font-size: 22px;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
 }
+
+/* Input VIN */
+#vin {
+  width: 100%;
+  padding: 18px;
+  font-size: 24px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  text-align: center;
+  font-weight: bold;
+  background: #e5e7eb;
+  color: #000;
+}
+
+/* Resultado */
 #res {
-  margin-top: 15px;
-  font-size: 18px;
+  margin-top: 20px;
+  padding: 18px;
+  font-size: 20px;
+  text-align: center;
+  border-radius: 10px;
+  font-weight: bold;
 }
-.ok { color: green; }
-.warn { color: orange; }
-.err { color: red; }
+
+/* Estados */
+.ok {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.warn {
+  background: #f59e0b;
+  color: #000000;
+}
+
+.err {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Animación breve */
+.flash {
+  animation: flash 0.15s;
+}
+
+@keyframes flash {
+  from { transform: scale(1.05); }
+  to   { transform: scale(1); }
+}
 </style>
 </head>
 
 <body>
 
-<h2>Escanear VIN</h2>
-<input id="vin" autofocus placeholder="Escanear VIN">
+<h2>ESCANEAR VIN</h2>
+
+<input
+  id="vin"
+  autofocus
+  inputmode="none"
+  placeholder="ESCANEAR VIN"
+>
 
 <div id="res"></div>
 
 <script>
 const URL = "https://script.google.com/macros/s/AKfycbwaEEXiNCQ9Mo-lQoZlBvJ8iK5GiVROGN888xyoiBoGYsP802rOTr5rKzUmdUvYU-2dTA/exec";
 
-document.getElementById("vin").addEventListener("keypress", e => {
-  if (e.key === "Enter") {
-    const vin = e.target.value.trim();
+const vinInput = document.getElementById("vin");
+const res = document.getElementById("res");
+
+let enviando = false; // 🔒 evita doble piqueo
+
+vinInput.focus();
+
+vinInput.addEventListener("keypress", e => {
+  if (e.key === "Enter" && !enviando) {
+
+    const vin = vinInput.value.trim();
     if (!vin) return;
+
+    enviando = true;          // 🔒 bloquea nuevos scans
+    vinInput.disabled = true;
 
     fetch(URL, {
       method: "POST",
@@ -41,19 +116,32 @@ document.getElementById("vin").addEventListener("keypress", e => {
     })
     .then(r => r.json())
     .then(d => {
-      const res = document.getElementById("res");
 
       if (d.error) {
         res.textContent = d.error;
-        res.className = "err";
+        res.className = "err flash";
       } else {
         res.textContent = d.resultado;
         res.className =
-          d.resultado === "SAP y WMS" ? "ok" :
-          d.resultado.includes("SOLO") ? "warn" : "err";
+          d.resultado === "SAP y WMS" ? "ok flash" :
+          d.resultado.includes("SOLO") ? "warn flash" :
+          "err flash";
       }
 
-      e.target.value = "";
+      // 🔄 Refresh rápido y SEGURO (no pierde datos)
+      setTimeout(() => {
+        location.replace(location.href);
+      }, 250);
+    })
+    .catch(() => {
+      // si falla la comunicación, desbloquea
+      enviando = false;
+      vinInput.disabled = false;
+      vinInput.value = "";
+      vinInput.focus();
+
+      res.textContent = "ERROR DE CONEXIÓN";
+      res.className = "err";
     });
   }
 });
@@ -61,4 +149,3 @@ document.getElementById("vin").addEventListener("keypress", e => {
 
 </body>
 </html>
-
