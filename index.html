@@ -44,6 +44,7 @@ h2 {
   text-align: center;
   border-radius: 10px;
   font-weight: bold;
+  min-height: 60px; /* Para que no salte el diseño */
 }
 
 /* Estados */
@@ -58,6 +59,9 @@ h2 {
   from { transform: scale(1.05); }
   to   { transform: scale(1); }
 }
+
+/* Indicador de carga sutil */
+.loading { opacity: 0.6; }
 </style>
 </head>
 
@@ -68,8 +72,8 @@ h2 {
 <input
   id="vin"
   autofocus
-  inputmode="none"
   placeholder="ESCANEAR VIN"
+  autocomplete="off"
 >
 
 <div id="res"></div>
@@ -80,56 +84,51 @@ const URL = "https://script.google.com/macros/s/AKfycbwaEEXiNCQ9Mo-lQoZlBvJ8iK5G
 const vinInput = document.getElementById("vin");
 const res = document.getElementById("res");
 
-let enviando = false; // evita doble envío
-
-vinInput.focus();
+// Asegurar que el input siempre tenga el foco
+document.addEventListener("click", () => vinInput.focus());
 
 vinInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
 
-    if (enviando) return;
-
     const vin = vinInput.value.trim();
     if (!vin) return;
 
-    enviando = true;
-    vinInput.disabled = true;
-
-    fetch(URL, {
-      method: "POST",
-      body: new URLSearchParams({ vin })
-    })
-    .then(r => r.json())
-    .then(d => {
-
-      if (d.error) {
-        res.textContent = d.error;
-        res.className = "err flash";
-      } else {
-        res.textContent = d.resultado;
-        res.className =
-          d.resultado === "SAP y WMS" ? "ok flash" :
-          d.resultado.includes("SOLO") ? "warn flash" :
-          "err flash";
-      }
-
-      // 🔓 listo para el siguiente piqueo
-      vinInput.value = "";
-      vinInput.disabled = false;
-      vinInput.focus();
-      enviando = false;
-    })
-    .catch(() => {
-      res.textContent = "ERROR DE CONEXIÓN";
-      res.className = "err";
-
-      vinInput.disabled = false;
-      vinInput.focus();
-      enviando = false;
-    });
+    // --- ACCIÓN INMEDIATA ---
+    vinInput.value = ""; // Limpiamos el campo al instante para el siguiente escaneo
+    res.classList.add("loading"); // Efecto visual opcional de "procesando"
+    
+    // Enviamos los datos en segundo plano
+    enviarDatos(vin);
   }
 });
+
+function enviarDatos(vin) {
+  fetch(URL, {
+    method: "POST",
+    body: new URLSearchParams({ vin })
+  })
+  .then(r => r.json())
+  .then(d => {
+    res.classList.remove("loading");
+    
+    if (d.error) {
+      res.textContent = d.error;
+      res.className = "err flash";
+    } else {
+      res.textContent = vin + ": " + d.resultado; // Agregamos el VIN para saber cuál respondió
+      res.className =
+        d.resultado === "SAP y WMS" ? "ok flash" :
+        d.resultado.includes("SOLO") ? "warn flash" :
+        "err flash";
+    }
+  })
+  .catch(() => {
+    res.classList.remove("loading");
+    res.textContent = "ERROR DE CONEXIÓN";
+    res.className = "err";
+  });
+}
 </script>
 
 </body>
