@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario VIN</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+input {
+  width: 100%;
+  padding: 20px;
+  font-size: 22px;
+}
+#res {
+  margin-top: 15px;
+  font-size: 18px;
+}
+.ok { color: green; }
+.warn { color: orange; }
+.err { color: red; }
+</style>
+</head>
+
+<body>
+
+<h2>Escanear VIN</h2>
+<input id="vin" autofocus placeholder="Escanear VIN">
+
+<div id="res"></div>
+
+<script>
+const URL = "https://script.google.com/macros/s/AKfycbwaEEXiNCQ9Mo-lQoZlBvJ8iK5GiVROGN888xyoiBoGYsP802rOTr5rKzUmdUvYU-2dTA/exec";
+
+document.getElementById("vin").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    const vin = e.target.value.trim();
+    if (!vin) return;
+
+    fetch(URL, {
+      method: "POST",
+      body: new URLSearchParams({ vin })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const res = document.getElementById("res");
+
+      if (d.error) {
+        res.textContent = d.error;
+        res.className = "err";
+      } else {
+        res.textContent = d.resultado;
+        res.className =
+          d.resultado === "SAP y WMS" ? "ok" :
+          d.resultado.includes("SOLO") ? "warn" : "err";
+      }
+
+      e.target.value = "";
+    });
+  }
+});
+</script>
+
+</body>
+</html>
+
