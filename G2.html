@@ -3,94 +3,115 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inventario Automático</title>
+<title>Inventario VIN</title>
 
 <style>
-/* ... (mantenemos el CSS anterior para el estilo) ... */
 * { box-sizing: border-box; }
-body { font-family: Arial; background: #0f172a; color: #ffffff; padding: 16px; margin: 0; }
-h2 { text-align: center; }
-#vin { width: 100%; padding: 18px; font-size: 24px; border-radius: 10px; border: none; text-align: center; background: #e5e7eb; color: #000; }
-#res { margin-top: 20px; padding: 18px; font-size: 20px; text-align: center; border-radius: 10px; font-weight: bold; min-height: 60px; }
-.ok { background: #16a34a; }
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h2 { font-size: 22px; margin-bottom: 16px; }
+
+#vin {
+  width: 100%;
+  padding: 18px;
+  font-size: 24px;
+  border-radius: 10px;
+  border: 4px solid #334155;
+  text-align: center;
+  font-weight: bold;
+  background: #e5e7eb;
+  color: #000;
+}
+
+#res {
+  width: 100%;
+  margin-top: 20px;
+  padding: 25px;
+  font-size: 22px;
+  text-align: center;
+  border-radius: 10px;
+  font-weight: bold;
+  min-height: 80px;
+}
+
+.ok { background: #16a34a; color: #fff; }
 .warn { background: #f59e0b; color: #000; }
-.err { background: #dc2626; }
-.flash { animation: flash 0.12s; }
-@keyframes flash { from { transform: scale(1.05); } to { transform: scale(1); } }
+.err { background: #dc2626; color: #fff; }
+
+.flash { animation: flash 0.15s; }
+@keyframes flash {
+  from { transform: scale(1.05); }
+  to { transform: scale(1); }
+}
 </style>
 </head>
 
 <body>
 
-<h2>MODO AUTOMÁTICO</h2>
+<h2>ESCANEAR VIN</h2>
 
-<input
-  id="vin"
-  autofocus
-  placeholder="ESPERANDO ESCANEO..."
+<input 
+  id="vin" 
+  autofocus 
+  placeholder="LISTO PARA ESCANEAR"
   autocomplete="off"
 >
 
-<div id="res"></div>
+<div id="res">ESPERANDO DATOS...</div>
 
 <script>
+// ASEGÚRATE QUE ESTA URL SEA LA DE LA "NUEVA VERSIÓN"
 const URL = "https://script.google.com/macros/s/AKfycbzNsOwZW9tcYltKq-2qa1sXVkDieZfrXphooPLkM3Tn_mMZVFr3Bn3XYqsKuF-dwIc9/exec";
+
 const vinInput = document.getElementById("vin");
 const res = document.getElementById("res");
 
-// 1. Asegurar que el foco NUNCA se pierda
+// Forzar el foco siempre
 document.addEventListener("click", () => vinInput.focus());
-setInterval(() => { if(document.activeElement !== vinInput) vinInput.focus(); }, 1000);
 
-// 2. Escuchar el evento 'input' (detecta el pegado de texto del láser)
-vinInput.addEventListener("input", (e) => {
-    const vin = e.target.value.trim();
-    
-    // Ajusta este número (17) al largo de tus VINs si es fijo, 
-    // o deja que el 'Enter' de la handheld haga el resto.
-    if (vin.length >= 17) { 
-        procesarEscaneo(vin);
-    }
-});
+vinInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // Evita saltos de línea raros
 
-// 3. Mantener el Enter por si la handheld lo envía al final
-vinInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const vin = vinInput.value.trim();
-        if (vin) procesarEscaneo(vin);
-    }
-});
+    const vin = vinInput.value.trim().toUpperCase();
+    if (!vin) return;
 
-function procesarEscaneo(vin) {
-    // Limpiamos de inmediato para el próximo piqueo
-    vinInput.value = "";
-    
-    // Feedback visual inmediato
-    res.textContent = "Procesando: " + vin;
-    res.className = "";
+    // --- MEJORA: LIMPIEZA INMEDIATA ---
+    vinInput.value = ""; 
+    res.textContent = "PROCESANDO: " + vin;
+    res.className = ""; 
 
     fetch(URL, {
-        method: "POST",
-        body: new URLSearchParams({ vin })
+      method: "POST",
+      body: new URLSearchParams({ vin: vin })
     })
     .then(r => r.json())
     .then(d => {
-        if (d.error) {
-            res.textContent = d.error;
-            res.className = "err flash";
-        } else {
-            res.textContent = vin + ": " + d.resultado;
-            res.className = 
-                d.resultado === "SAP y WMS" ? "ok flash" :
-                d.resultado.includes("SOLO") ? "warn flash" : "err flash";
-        }
+      if (d.error) {
+        res.textContent = d.error;
+        res.className = "err flash";
+      } else {
+        res.textContent = vin + " -> " + d.resultado;
+        res.className =
+          d.resultado === "SAP y WMS" ? "ok flash" :
+          d.resultado.includes("SOLO") ? "warn flash" : "err flash";
+      }
     })
-    .catch(() => {
-        res.textContent = "ERROR DE RED";
-        res.className = "err";
+    .catch(err => {
+      res.textContent = "ERROR DE CONEXIÓN";
+      res.className = "err";
     });
-}
+  }
+});
 </script>
 
 </body>
